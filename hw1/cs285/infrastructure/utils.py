@@ -34,7 +34,7 @@ def sample_trajectory(env, policy, max_path_length, render=False):
                 img = env.render(mode='single_rgb_array')
             image_obs.append(cv2.resize(img, dsize=(250, 250), interpolation=cv2.INTER_CUBIC))
     
-        ac = policy.forward(torch.from_numpy(ob).float().cuda()).detach().cpu().numpy()
+        ac = policy.get_action(ob)[0]
 
         next_ob, rew, terminated, _ = env.step(ac)
         

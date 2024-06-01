@@ -109,6 +109,19 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             itertools.chain([self.logstd], self.mean_net.parameters()),
             self.learning_rate
         )
+        self.loss = nn.MSELoss()
+
+    def get_action(self, obs: np.ndarray) -> np.ndarray:
+        if len(obs.shape) > 1:
+            observation = obs
+        else:
+            observation = obs[None]
+
+        obs_torch = torch.from_numpy(observation).float().cuda()
+        with torch.no_grad():
+            ac = self.mean_net(obs_torch)
+
+        return ptu.to_numpy(ac)
 
     def save(self, filepath):
         """
@@ -143,12 +156,12 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         # TODO: update the policy and return the loss
         data = torch.from_numpy(observations).float().cuda()
         gt = torch.from_numpy(actions).float().cuda()
-        prediction = self.mean_net(data)
-        loss = (prediction - gt).sum() ** 2.0
-        print(loss)
+        prediction = self(data)
+        loss = self.loss(prediction, gt)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+        print(loss.detach().cpu().numpy())
 
         return {
             # You can add extra logging information here, but keep this line
